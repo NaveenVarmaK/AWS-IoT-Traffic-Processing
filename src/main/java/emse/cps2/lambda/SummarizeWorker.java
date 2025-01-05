@@ -15,9 +15,11 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStreamWriter;
-import java.io.BufferedWriter;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
+import software.amazon.awssdk.services.sns.model.PublishResponse;
+//implement logging
 
 public class SummarizeWorker implements RequestHandler<S3Event, String> {
 
@@ -101,11 +103,33 @@ public class SummarizeWorker implements RequestHandler<S3Event, String> {
 
             System.out.println("CSV file uploaded successfully to S3");
 
+            // Publish a notification to the SNS topic
+            publishNotification(outputBucketName, outputFileName);
+
         } catch (final IOException e) {
             System.out.println("IOException: " + e.getMessage());
         }
 
         return "Processing Complete";
+    }
+
+    private void publishNotification(String bucketName, String fileName) {
+        String topicArn = "arn:aws:sns:us-east-1:498637188134:SummarizedWorker-SNS";  // Replace with your SNS topic ARN
+        Region region = Region.US_EAST_1;
+
+        SnsClient snsClient = SnsClient.builder().region(region).build();
+
+        String message = "File processed successfully from SummarizedWorker to the.\nBucket: " + bucketName + "\nFile: " + fileName;
+
+        PublishRequest publishRequest = PublishRequest.builder()
+                .topicArn(topicArn)
+                .message(message)
+                .build();
+
+        PublishResponse publishResponse = snsClient.publish(publishRequest);
+
+        System.out.println(
+                publishResponse.messageId() + " Notification sent. Status is " + publishResponse.sdkHttpResponse().statusCode());
     }
 
     // Helper class to store aggregated data for each Src IP, Dst IP, and Date combination

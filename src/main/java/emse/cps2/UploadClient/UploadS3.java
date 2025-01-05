@@ -13,7 +13,7 @@ public class UploadS3 {
     public static void main(String[] args) {
         // Declare the bucket name and file path directly in the code
         String bucketName = "upload-client-cps2";
-        String filePath = "C:\\Users\\knave\\OneDrive\\Documents\\CPS2 M2\\Cloud_Edge\\group_project\\src\\main\\resources\\data-20221207.csv";
+        String filePath = "C:\\Users\\knave\\OneDrive\\Documents\\CPS2 M2\\Cloud_Edge\\AWS_Iot_Traffic_Project\\src\\main\\resources\\data-20221207.csv";
 
         S3Client s3 = S3Client.create();
 
