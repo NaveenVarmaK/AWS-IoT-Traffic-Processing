@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
@@ -18,6 +17,13 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import java.io.ByteArrayInputStream;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
+import software.amazon.awssdk.services.sns.model.PublishResponse;
 
 public class ConsolidatorWorker implements RequestHandler<S3Event, String> {
 
@@ -93,13 +99,19 @@ public class ConsolidatorWorker implements RequestHandler<S3Event, String> {
 
             // Upload the result to S3
             String outputBucketName = "export-client-cps2";  // Replace with your target S3 bucket name
-            String outputFileName = "consolidated_traffic_data.csv";  // Output file name
+            String outputFileName = "consolidated_traffic_data.csv";  // your desired Output file name
 
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(csvContent.toString().getBytes(StandardCharsets.UTF_8));
             PutObjectRequest putObjectRequest = new PutObjectRequest(outputBucketName, outputFileName, byteArrayInputStream, null);
             s3Client.putObject(putObjectRequest);
 
             System.out.println("Consolidated CSV file uploaded successfully to S3");
+
+            // Send a message to the SQS queue
+            sendMessageToQueue(outputBucketName, outputFileName);
+
+            // Publish a notification to the SNS topic
+            publishNotification(outputBucketName, outputFileName);
 
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
@@ -108,7 +120,43 @@ public class ConsolidatorWorker implements RequestHandler<S3Event, String> {
         return "Processing Complete";
     }
 
-    // Helper method to calculate the average
+    private void sendMessageToQueue(String bucketName, String fileName) {
+        String queueURL = "https://sqs.us-east-1.amazonaws.com/498637188134/ExportClientQueue";  // Replace with your SQS queue URL
+        Region region = Region.US_EAST_1;
+
+        SqsClient sqsClient = SqsClient.builder().region(region).build();
+
+        SendMessageRequest sendRequest = SendMessageRequest.builder()
+                .queueUrl(queueURL)
+                .messageBody(bucketName + ";" + fileName)
+                .build();
+
+        SendMessageResponse sqsResponse = sqsClient.sendMessage(sendRequest);
+
+        System.out.println(
+                sqsResponse.messageId() + " Message sent. Status is " + sqsResponse.sdkHttpResponse().statusCode());
+    }
+
+    private void publishNotification(String bucketName, String fileName) {
+        String topicArn = "arn:aws:sns:us-east-1:498637188134:ConsolidatorWorker-SNS";  // Replace with your SNS topic ARN
+        Region region = Region.US_EAST_1;
+
+        SnsClient snsClient = SnsClient.builder().region(region).build();
+
+        String message = "File processed successfully From ConsolidatorWorker and sended to.\nBucket: " + bucketName + "\nFile: " + fileName + "\n and It is ready for download. Please run the function ExportClient to download the file.";
+
+        PublishRequest publishRequest = PublishRequest.builder()
+                .topicArn(topicArn)
+                .message(message)
+                .build();
+
+        PublishResponse publishResponse = snsClient.publish(publishRequest);
+
+        System.out.println(
+                publishResponse.messageId() + " Notification sent. Status is " + publishResponse.sdkHttpResponse().statusCode());
+    }
+
+    // Helper methods for calculations
     private double calculateAverage(List<DataEntry> dataEntries, java.util.function.ToIntFunction<DataEntry> extractor) {
         return dataEntries.stream()
                 .mapToInt(extractor)
@@ -116,7 +164,6 @@ public class ConsolidatorWorker implements RequestHandler<S3Event, String> {
                 .orElse(0);
     }
 
-    // Helper method to calculate the standard deviation
     private double calculateStdDev(List<DataEntry> dataEntries, java.util.function.ToIntFunction<DataEntry> extractor, double mean) {
         double variance = dataEntries.stream()
                 .mapToDouble(entry -> Math.pow(extractor.applyAsInt(entry) - mean, 2))
@@ -125,14 +172,13 @@ public class ConsolidatorWorker implements RequestHandler<S3Event, String> {
         return Math.sqrt(variance);
     }
 
-    // Helper method to sum the values
     private int sum(List<DataEntry> dataEntries, java.util.function.ToIntFunction<DataEntry> extractor) {
         return dataEntries.stream()
                 .mapToInt(extractor)
                 .sum();
     }
 
-    // DataEntry class to store flow duration and forward packet data
+    // DataEntry class
     private static class DataEntry {
         private final int flowDuration;
         private final int totFwdPkts;
