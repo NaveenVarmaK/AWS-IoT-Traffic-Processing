@@ -1,5 +1,6 @@
 package emse.cps2.lambda;
 
+import emse.cps2.config.EnvironmentConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -98,8 +99,8 @@ public class ConsolidatorWorker implements RequestHandler<S3Event, String> {
             }
 
             // Upload the result to S3
-            String outputBucketName = "export-client-cps2";  // Replace with your target S3 bucket name
-            String outputFileName = "consolidated_traffic_data.csv";  // your desired Output file name
+            String outputBucketName = EnvironmentConfig.ConsolidatorConfig.getOutputBucketName();
+            String outputFileName = EnvironmentConfig.ConsolidatorConfig.getOutputFileName();
 
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(csvContent.toString().getBytes(StandardCharsets.UTF_8));
             PutObjectRequest putObjectRequest = new PutObjectRequest(outputBucketName, outputFileName, byteArrayInputStream, null);
@@ -121,7 +122,7 @@ public class ConsolidatorWorker implements RequestHandler<S3Event, String> {
     }
 
     private void sendMessageToQueue(String bucketName, String fileName) {
-        String queueURL = "https://sqs.us-east-1.amazonaws.com/498637188134/ExportClientQueue";  // Replace with your SQS queue URL
+        String queueURL = EnvironmentConfig.ConsolidatorConfig.getSqsQueueUrl();
         Region region = Region.US_EAST_1;
 
         SqsClient sqsClient = SqsClient.builder().region(region).build();
@@ -138,7 +139,7 @@ public class ConsolidatorWorker implements RequestHandler<S3Event, String> {
     }
 
     private void publishNotification(String bucketName, String fileName) {
-        String topicArn = "arn:aws:sns:us-east-1:498637188134:ConsolidatorWorker-SNS";  // Replace with your SNS topic ARN
+        String topicArn = EnvironmentConfig.ConsolidatorConfig.getSnsTopicArn();
         Region region = Region.US_EAST_1;
 
         SnsClient snsClient = SnsClient.builder().region(region).build();

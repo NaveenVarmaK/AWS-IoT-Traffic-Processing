@@ -1,5 +1,6 @@
 package emse.cps2.sqs;
 
+import emse.cps2.config.EnvironmentConfig;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
@@ -16,9 +17,8 @@ import java.nio.file.Paths;
 public class ExportClient {
 
     public static void main(String[] args) {
-        // Declaring the arguments hardcorded inside the function
-        String queueURL = "https://sqs.us-east-1.amazonaws.com/498637188134/ExportClientQueue";
-        String localDirectory = "C:\\Users\\knave\\OneDrive\\Documents\\CPS2 M2\\Cloud_Edge\\AWS_Iot_Traffic_Project\\src\\main\\S3RetrievedFiles";
+        String queueURL = EnvironmentConfig.ExportConfig.getSqsQueueUrl();
+        String localDirectory = EnvironmentConfig.ExportConfig.getLocalDirectory();
         Region awsRegion = Region.US_EAST_1; // Specify the AWS region
 
         // Initialize SQS client

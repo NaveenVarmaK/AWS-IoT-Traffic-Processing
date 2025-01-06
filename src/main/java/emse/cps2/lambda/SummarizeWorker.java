@@ -1,5 +1,6 @@
 package emse.cps2.lambda;
 
+import emse.cps2.config.EnvironmentConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -93,8 +94,8 @@ public class SummarizeWorker implements RequestHandler<S3Event, String> {
             }
 
             // Upload the CSV to another S3 bucket
-            String outputBucketName = "summarizedtables-cps2"; 
-            String outputFileName = "summarized_traffic_data.csv";  // Output file name in the S3 bucket
+            String outputBucketName = EnvironmentConfig.SummarizerConfig.getOutputBucketName();
+            String outputFileName = EnvironmentConfig.SummarizerConfig.getOutputFileName();
 
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(csvContent.toString().getBytes(StandardCharsets.UTF_8));
             PutObjectRequest putObjectRequest = new PutObjectRequest(outputBucketName, outputFileName, byteArrayInputStream, null);
@@ -114,7 +115,7 @@ public class SummarizeWorker implements RequestHandler<S3Event, String> {
     }
 
     private void publishNotification(String bucketName, String fileName) {
-        String topicArn = "arn:aws:sns:us-east-1:498637188134:SummarizedWorker-SNS";  // Replace with your SNS topic ARN
+        String topicArn = EnvironmentConfig.SummarizerConfig.getSnsTopicArn();
         Region region = Region.US_EAST_1;
 
         SnsClient snsClient = SnsClient.builder().region(region).build();
