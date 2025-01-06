@@ -1,0 +1,19 @@
+# ConsolidatorWorker Variables
+CONSOLIDATOR_OUTPUT_BUCKET_NAME="export-client-cps2-[yourname]"
+CONSOLIDATOR_OUTPUT_FILE_NAME="consolidated_traffic_data.csv"
+CONSOLIDATOR_SQS_QUEUE_URL="https://sqs.us-east-1.amazonaws.com/[YOUR-ACCOUNT-ID]/ExportClientQueue"
+CONSOLIDATOR_SNS_TOPIC_ARN="arn:aws:sns:us-east-1:[YOUR-ACCOUNT-ID]:ConsolidatorWorker-SNS"
+
+# SummarizeWorker Variables
+SUMMARIZER_OUTPUT_BUCKET_NAME="summarizedtables-cps2-[yourname]"
+SUMMARIZER_OUTPUT_FILE_NAME="summarized_traffic_data.csv"
+SUMMARIZER_SNS_TOPIC_ARN="arn:aws:sns:us-east-1:[YOUR-ACCOUNT-ID]:SummarizedWorker-SNS"
+
+# ExportClient Variables
+EXPORT_CLIENT_SQS_QUEUE_URL="https://sqs.us-east-1.amazonaws.com/[YOUR-ACCOUNT-ID]/ExportClientQueue"
+EXPORT_CLIENT_LOCAL_DIRECTORY="/path/to/your/local/directory"
+EXPORT_CLIENT_AWS_REGION="us-east-1"
+
+# UploadClient Variables
+UPLOAD_S3_BUCKET_NAME="upload-client-cps2-[yourname]"
+UPLOAD_S3_FILE_PATH="src/main/resources/data-20221207.csv"
